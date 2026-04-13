@@ -22,9 +22,8 @@ async def query(payload: dict, request: Request):
             "retrieval_decision",
             extra={
                 "request_id": request_id,
-                "decision": decision,
+                "decision": RetrievalDecision.REFUSE_EMPTY.value,
                 "metrics_snapshot": state.retrieval_metrics.snapshot(),
-                **details,
             },
         )
 
@@ -64,19 +63,38 @@ async def query(payload: dict, request: Request):
             "retrieved_chunks": [],
         }
 
-    retrieved_chunks = [
-        {
-            "chunk_id": cid,
-            "score": score,
-            "text": state.chunk_store.get(cid).content,
-        }
-        for cid, score in results
+    context_chunks = [
+        state.chunk_store.get(cid).content
+        for cid, _ in results
         if state.chunk_store.get(cid) is not None
     ]
 
+    gen_result = state.generator.generate(
+        query=query_text,
+        context_chunks=context_chunks,
+    )
+
+    logger.info(
+        "generation_executed",
+        extra={
+            "request_id": request_id,
+            "latency_ms": gen_result.get("latency_ms"),
+            "prompt_chars": gen_result.get("prompt_chars"),
+            "error": gen_result.get("error"),
+        }
+    )
+
+    if gen_result.get("error") == 'generation_failed':
+        return {
+            "query": query_text,
+            "decision": "generation_failed",
+            "error": gen_result.get("detailed_log_err"),
+            "details": gen_result,
+        }
+
     return {
         "query": query_text,
-        "decision": decision,
-        "details": details,
-        "retrieved_chunks": retrieved_chunks,
+        "decision": decision.value,
+        "answer": gen_result.get("detailed_log_err"),
+        "latency": gen_result.get("generation_latency_ms"),
     }

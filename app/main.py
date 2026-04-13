@@ -22,7 +22,7 @@ async def app_error_handler(request, exc: AppError):
         },
     )
 
-app.middleware("http")(TimeoutMiddleware(timeout_seconds=5))
+app.middleware("http")(TimeoutMiddleware(timeout_seconds=30))
 app.middleware("http")(observability_middleware)
 app.middleware("http")(request_id_middleware)
 
