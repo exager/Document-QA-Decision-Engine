@@ -44,24 +44,33 @@ class LlamaCppGenerator:
             "--ctx-size", str(self.ctx_size),
             "--n-predict", str(self.max_tokens),
             "--temp", str(self.temperature),
+            "--simple-io",           # CRITICAL: clean subprocess behavior
+            "--log-disable",         # disables internal logs
+            "--no-display-prompt",   # removes prompt echo
+            "--no-show-timings",     # removes timing output
+            "--verbosity", "1",      # only errors (minimum noise)
             "-p", prompt,
-            "-e",
-            "--simple-io",
-            "--single-turn",
         ]
 
         start = time.time()
         cmd = [str(arg) for arg in cmd]
 
         try:
-            result = subprocess.Popen(
+            result = subprocess.run(
                 cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
-                bufsize=1
+                timeout=self.timeout_sec,
             )
-            stdout, stderr = result.communicate()
+            # result = subprocess.Popen(
+            #     cmd,
+            #     stdin=subprocess.PIPE,
+            #     stdout=subprocess.PIPE,
+            #     stderr=subprocess.PIPE,
+            #     text=True,
+            #     bufsize=1
+            # )
+            # stdout, stderr = result.communicate()
         except subprocess.TimeoutExpired:
             return {
                 "error": "generation_timeout",
@@ -71,13 +80,13 @@ class LlamaCppGenerator:
 
         latency_ms = int((time.time() - start) * 1000)
 
-        response = "generation_failed" if result.returncode != 0 or result.stdout.strip() == '' else "response_generated"
+        response = "generation_failed" if result.returncode != 0 or (result.stdout or "").strip() == "" else "response_generated"
 
         return {
             "response": response,
-            "answer": stdout.strip().split('\n\n')[-3],
+            "answer": result.stdout.strip().split('\n\n'),
             "generation_latency_ms": latency_ms,
             "prompt_chars": prompt_chars,
-            "detailed_log_out": stdout.strip(),
-            "detailed_log_err":stderr.strip()
+            "detailed_log_out": result.stdout.strip(),
+            "detailed_log_err":result.stderr.strip()
         }
