@@ -69,7 +69,7 @@ async def query(payload: dict, request: Request):
         if state.chunk_store.get(cid) is not None
     ]
 
-    gen_result = state.generator.generate(
+    gen_result = state.llm.generate(
         query=query_text,
         context_chunks=context_chunks,
     )
@@ -95,6 +95,6 @@ async def query(payload: dict, request: Request):
     return {
         "query": query_text,
         "decision": decision.value,
-        "answer": gen_result.get("detailed_log_err"),
+        "answer": gen_result.get("answer"),
         "latency": gen_result.get("generation_latency_ms"),
     }

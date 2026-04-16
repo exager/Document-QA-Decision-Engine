@@ -62,6 +62,8 @@ class LlamaCppGenerator:
                 text=True,
                 timeout=self.timeout_sec,
             )
+
+            # If you want to use Popen method use below
             # result = subprocess.Popen(
             #     cmd,
             #     stdin=subprocess.PIPE,

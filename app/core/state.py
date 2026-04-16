@@ -5,6 +5,7 @@ from app.core.retrieval.evaluator import RetrievalEvaluator
 from app.core.config import Settings, RetrievalConfig
 from app.core.metrics import MetricsStore, RetrievalMetrics
 from app.core.generation.llama_generator import LlamaCppGenerator
+from app.core.generation.ai_adapter import SAPLLM
 
 class AppState:
     def __init__(self):
@@ -27,5 +28,6 @@ class AppState:
             temperature=0.9,
             timeout_sec=30,
         )
+        self.llm = SAPLLM(self.settings)
 
 state = AppState()
