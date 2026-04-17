@@ -1,7 +1,6 @@
 import time
-from collections import defaultdict
+from collections import defaultdict, Counter
 from threading import Lock
-from collections import Counter
 
 class MetricsStore:
     def __init__(self):
@@ -39,9 +38,57 @@ class MetricsStore:
 class RetrievalMetrics:
     def __init__(self):
         self.decisions = Counter()
+        self.details = defaultdict(list)
 
-    def record(self, decision: str):
+    def record(self, decision: str, details: dict = defaultdict):
         self.decisions[decision] += 1
+        self.details[decision].append(details)
 
     def snapshot(self):
-        return dict(self.decisions)
+        return dict(self.decisions), dict(self.details)
+
+class QueryEvaluationMetrics:
+    def __init__(self):
+        self.lock = Lock()
+        self.total_queries = 0
+        self.answered = 0
+        self.refused = 0
+        self.hallucinations = 0
+        self.overlap_scores = []
+
+    def record(
+        self,
+        *,
+        decision: str,
+        overlap_score: float,
+        hallucination: bool,
+    ):
+        with self.lock:
+            self.total_queries += 1
+
+            if decision in ["answerable", "answerable_low_confidence"]:
+                self.answered += 1
+            else:
+                self.refused += 1
+
+            if hallucination:
+                self.hallucinations += 1
+
+            self.overlap_scores.append(overlap_score)
+
+    def snapshot(self):
+        with self.lock:
+            if self.total_queries == 0:
+                return {}
+
+            avg_overlap = sum(self.overlap_scores) / len(self.overlap_scores)
+
+            return {
+                "total_queries": self.total_queries,
+                "answered": self.answered,
+                "refused": self.refused,
+                "answer_rate": self.answered / self.total_queries,
+                "refusal_rate": self.refused / self.total_queries,
+                "hallucination_rate": self.hallucinations / self.total_queries,
+                "avg_overlap_score": avg_overlap,
+            }
