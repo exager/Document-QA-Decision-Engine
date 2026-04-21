@@ -157,7 +157,7 @@ Payload: {
 POST /query
 ```json
 Payload: {
-  query: "Your question here"
+  query: "Your question here",
   top_k: <Top matching chunks you want to check against> #Optional
 }
 ```
