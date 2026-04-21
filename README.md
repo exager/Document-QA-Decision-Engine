@@ -157,8 +157,8 @@ Payload: {
 POST /query
 ```json
 Payload: {
-  query: "Your question here",
-  top_k: <Top matching chunks you want to check against> #Optional
+  "query": "Your question here",
+  "top_k": 6,  //Optional field for Top matching chunks you want to check against
 }
 ```
 
@@ -173,11 +173,11 @@ Payload: {
     "top_score": 0.82,
     "decision": "answerable",
     "overlap_score": 0.65,
-    "hallucination_risk": <True/False>,
+    "hallucination_risk": "<True/False>",
   },
-  guardrails": {
-    "query_checked": True,
-    "context_filtered": True,
+  "guardrails": {
+    "query_checked": "True",
+    "context_filtered": "True",
   },
   "trace": [
     "retrieval_decision: answerable",
