@@ -86,7 +86,7 @@ class LlamaCppGenerator:
 
         return {
             "response": response,
-            "answer": result.stdout.strip().split('\n\n'),
+            "answer": result.stdout.strip(),
             "generation_latency_ms": latency_ms,
             "prompt_chars": prompt_chars,
             "detailed_log_out": result.stdout.strip(),

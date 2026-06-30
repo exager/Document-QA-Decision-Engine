@@ -46,7 +46,7 @@ async def ingest(req: IngestRequest, request: Request):
         # discovered_docs = len(results)
         for result in results:
             # Stable ID derived from source URL
-            source_doc_id = hashlib.sha256(f'url:{result.url.encode()}'.encode("utf-8")).hexdigest()
+            source_doc_id = hashlib.sha256(f'url:{result.url}'.encode("utf-8")).hexdigest()
 
             documents.append(
                 Document(

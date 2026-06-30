@@ -45,7 +45,7 @@ async def query(payload: dict, request: Request):
         )
 
         return {
-            "decision": RetrievalDecision.REFUSE_EMPTY,
+            "decision": RetrievalDecision.REFUSE_EMPTY.value,
             "reason": "no_documents_indexed",
         }
 
@@ -164,7 +164,7 @@ async def query(payload: dict, request: Request):
         "guardrails": {
             "query_checked": True,
             "context_filtered": True,
-        }
+        },
         "trace": [
             f"retrieval_decision: {decision.value}",
             f"top_score: {details.get('top_score')}",

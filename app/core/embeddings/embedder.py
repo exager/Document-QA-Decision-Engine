@@ -8,7 +8,7 @@ class Embedder:
         self.model = SentenceTransformer(model_name)
 
     def embed_texts(self, texts: List[str]) -> List[list[float]]:
-        return self.model.encode(texts, convert_to_numpy=True)
+        return self.model.encode(texts, convert_to_numpy=True, normalize_embeddings=True)
 
 class InMemoryEmbeddingCache:
     def __init__(self):

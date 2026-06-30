@@ -15,14 +15,14 @@ def process_document(documents: List[Document], request_id: str):
         parts = chunk_document(document)
         chunks.extend(parts)
 
-    logger.info(
-        "document_chunked",
-        extra={
-            "request_id": request_id,
-            "document_id": document.document_id,
-            "chunk_count": len(chunks),
-        },
-    )
+        logger.info(
+            "document_chunked",
+            extra={
+                "request_id": request_id,
+                "document_id": document.document_id,
+                "chunk_count": len(chunks),
+            },
+        )
 
     # Vectorization and Persistence 
     texts = []

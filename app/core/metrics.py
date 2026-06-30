@@ -40,7 +40,10 @@ class RetrievalMetrics:
         self.decisions = Counter()
         self.details = defaultdict(list)
 
-    def record(self, decision: str, details: dict = defaultdict):
+    def record(self, decision: str, details: dict | None = None):
+        if details is None:
+            details = {}
+
         self.decisions[decision] += 1
         self.details[decision].append(details)
 
