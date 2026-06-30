@@ -1,12 +1,10 @@
 from fastapi import APIRouter, HTTPException, Request
-from app.core.embeddings.embedder import Embedder
 from app.core.state import state
 from app.core.retrieval.decisions import RetrievalDecision
 from app.core.retrieval.grounding import compute_overlap
 from app.core.guardrails.query_guard import sanitize_query
 from app.core.guardrails.query_preprocessing import preprocess_query
 from app.core.guardrails.context_guard import sanitize_context
-import numpy as np
 import logging
 
 router = APIRouter()
@@ -98,7 +96,7 @@ async def query(payload: dict, request: Request):
         "generation_executed",
         extra={
             "request_id": request_id,
-            "latency_ms": gen_result.get("latency_ms"),
+            "latency_ms": gen_result.get("generation_latency_ms"),
             "prompt_chars": gen_result.get("prompt_chars"),
             "error": gen_result.get("error"),
         }
@@ -135,6 +133,13 @@ async def query(payload: dict, request: Request):
             "details": gen_result,
         }
 
+    elif gen_result.get("response") == "refused":
+        return {
+            "query": query_text,
+            "decision": "refused",
+            "error": gen_result.get("detailed_log_err"),
+            "details": gen_result,
+        }
     confidence_map = {
         "answerable": "high",
         "answerable_low_confidence": "medium",
@@ -145,7 +150,7 @@ async def query(payload: dict, request: Request):
         "decision": decision.value,
         "answer": gen_result.get("answer"),
         "confidence": confidence_map.get(decision.value, "none"),
-        "latency_ms": gen_result.get("latency_ms"),
+        "latency_ms": gen_result.get("generation_latency_ms"),
         "sources": [
             {
                 "chunk_id": cid,

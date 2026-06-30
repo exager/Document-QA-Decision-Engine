@@ -5,7 +5,8 @@ class Settings(BaseSettings):
     app_name: str = "applied-ai-system"
     log_level: str = "INFO"
 
-    # SAP LLM config
+    # LLM config
+    generator_backend: str
     aicore_auth_url: str
     aicore_client_id: str
     aicore_client_secret: str

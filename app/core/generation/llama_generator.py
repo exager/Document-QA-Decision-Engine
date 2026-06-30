@@ -76,7 +76,7 @@ class LlamaCppGenerator:
         except subprocess.TimeoutExpired:
             return {
                 "error": "generation_timeout",
-                "latency_ms": int((time.time() - start) * 1000),
+                "generation_latency_ms": int((time.time() - start) * 1000),
                 "prompt_chars": prompt_chars,
             }
 

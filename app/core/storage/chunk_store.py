@@ -8,8 +8,7 @@ class InMemoryChunkStore:
 
     def upsert(self, chunk: Chunk):
         self._chunks[chunk.chunk_id] = chunk
-        print(chunk.chunk_id)
-
+        
     def bulk_upsert(self, chunks: list[Chunk]):
         for chunk in chunks:
             self.upsert(chunk)

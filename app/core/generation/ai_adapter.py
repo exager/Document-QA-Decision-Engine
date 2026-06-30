@@ -94,7 +94,7 @@ class SAPLLM:
                 "prompt_chars": prompt_chars,
                 "tokens_estimate": len(answer.split()),
                 "detailed_log_out": answer,
-                "detailed_log_err": "",
+                "detailed_log_err": "weak match in query and the existing content" if refused else "",
             }
 
         except Exception as e:

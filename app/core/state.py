@@ -19,13 +19,15 @@ class AppState:
         self.metrics_store = MetricsStore()
         self.retrieval_metrics = RetrievalMetrics()
         self.query_eval_metrics = QueryEvaluationMetrics()
-        self.generator = LlamaCppGenerator(
-            model_path="llama.cpp/build/models/qwen/qwen2.5-1.5b-instruct-q4_k_m.gguf",
-            ctx_size=4096,
-            max_tokens=256,
-            temperature=0.9,
-            timeout_sec=30,
-        )
-        self.llm = SAPLLM(self.settings)
+        if self.settings.generator_backend == "sap":
+            self.llm = SAPLLM(self.settings)
+        elif self.settings.generator_backend == "llamacpp":
+            self.llm = LlamaCppGenerator(
+                model_path="llama.cpp/build/models/qwen/qwen2.5-1.5b-instruct-q4_k_m.gguf",
+                ctx_size=4096,
+                max_tokens=256,
+                temperature=0.9,
+                timeout_sec=30,
+            )
 
 state = AppState()

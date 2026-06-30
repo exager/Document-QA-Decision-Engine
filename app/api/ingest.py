@@ -97,7 +97,6 @@ async def ingest(req: IngestRequest, request: Request):
 
     #Process Documents
     processed_count = process_document(documents, request_id)
-    print(state.chunk_store.count())
     return IngestResponse(
         document_id="batch",
         status="accepted",
@@ -154,7 +153,7 @@ async def ingest_file(
         extra={
             "request_id": request_id,
             "document_id": document_id,
-            "chunk_count": processed_docs,
+            "newly_embedded_chunks": processed_docs,
         },
     )
 
