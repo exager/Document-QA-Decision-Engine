@@ -1,7 +1,6 @@
 import logging
 import json
 from datetime import datetime
-from app.core.state import state
 from contextvars import ContextVar
 
 request_id_ctx = ContextVar("request_id", default=None)
@@ -35,10 +34,10 @@ class JsonFormatter(logging.Formatter):
         return json.dumps(payload)
 
 
-def setup_logging():
+def setup_logging(log_level: str = "INFO"):
     handler = logging.StreamHandler()
     handler.setFormatter(JsonFormatter())
 
     root = logging.getLogger()
-    root.setLevel(state.settings.log_level)
+    root.setLevel(log_level)
     root.handlers = [handler]

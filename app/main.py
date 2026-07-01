@@ -2,12 +2,14 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from app.core.errors import AppError
 from app.core.logging import setup_logging
+from app.core.config import Settings
 from app.core.request_id import request_id_middleware
 from app.core.observability import observability_middleware
 from app.core.timeouts import TimeoutMiddleware
 from app.api import health, ingest, query, metrics
 
-setup_logging()
+_settings = Settings()
+setup_logging(log_level=_settings.log_level)
 
 app = FastAPI(title="Applied AI System")
 
