@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 class RetrievalConfig(BaseSettings):
     min_top_score: float = 0.6
     min_chunks_above_threshold: int = 1
-
+    max_top_k: int = 20
     class Config:
         env_prefix = "RAG_"
 

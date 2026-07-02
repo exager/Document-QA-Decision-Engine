@@ -49,9 +49,8 @@ async def query(payload: dict, request: Request):
 
 
     query_embedding = state.embedder.embed_texts([query_text])
-    top_k = payload.get("top_k")
-    if not top_k:
-        top_k = 5
+    top_k = payload.get("top_k", 5)
+    top_k = max(1, min(top_k, state.retrieval_config.max_top_k))
 
     results = state.vector_index.search(
         query_embedding=query_embedding,
