@@ -1,22 +1,27 @@
 import logging
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import (
+    APIRouter,
+    HTTPException, 
+    Request,
+    UploadFile,
+    File
+)
 from app.schemas.ingest import IngestRequest, IngestResponse
 from app.core.retry import retry
-from app.core.limits import enforce_size_limit
+from app.core.limits import (
+    enforce_json_size_limit,
+    enforce_upload_size_limit,
+    MAX_JSON_BODY_BYTES,
+    MAX_FILE_UPLOAD_BYTES,
+)
 from app.core.search.dummy_internet import DummyInternetSearchProvider
 import uuid
 import hashlib
-import json
-import numpy as np
 from typing import List
 from app.core.documents.models import Document
-from app.core.documents.chunker import chunk_document
-from fastapi import UploadFile, File
 from app.core.loaders.pdf_loader import PDFLoader
 from app.core.loaders.docx_loader import DocxLoader
 from app.core.loaders.quality import validate_extraction
-from app.core.state import state
-from app.core.storage.vector_index import InMemoryVectorIndex
 from app.core.process import process_document
 
 
@@ -27,7 +32,7 @@ search_provider = DummyInternetSearchProvider()
 
 @router.post("/ingest", response_model=IngestResponse)
 async def ingest(req: IngestRequest, request: Request):
-    await enforce_size_limit(request)
+    await enforce_json_size_limit(request, MAX_JSON_BODY_BYTES)
     request_id = request.state.request_id
 
     documents: List[Document] = []
@@ -105,21 +110,27 @@ async def ingest(req: IngestRequest, request: Request):
 
 @router.post("/ingest/file", response_model=IngestResponse)
 async def ingest_file(
-    request: Request = None,
+    request: Request,
     file: UploadFile = File(...),
 ):
+    await enforce_upload_size_limit(request, file, MAX_FILE_UPLOAD_BYTES)
     request_id = request.state.request_id
 
     pdf_loader = PDFLoader()
     docx_loader = DocxLoader()
     file_bytes = await file.read()
 
-    if file.filename.endswith(".pdf"):
-        text, meta = pdf_loader.load(file_bytes)
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="filename_required")
+    if file.filename.lower().endswith(".pdf"):
+        document_extracted = pdf_loader.load(file_bytes)
     elif file.filename.endswith(".docx"):
-        text, meta = docx_loader.load(file_bytes)
+        document_extracted = docx_loader.load(file_bytes)
     else:
         raise HTTPException(status_code=400, detail="unsupported_file_type")
+
+    text = "\n\n".join(el.text for el in document_extracted.elements)
+    meta = document_extracted.metadata
 
     try:
         validate_extraction(text)
@@ -129,7 +140,7 @@ async def ingest_file(
             extra={
                 "request_id": request_id,
                 "filename": file.filename,
-                "extracted_length": meta["extracted_length"],
+                "extracted_length": len(text),
             },
         )
         raise HTTPException(status_code=422, detail="low_quality_document")
@@ -144,6 +155,7 @@ async def ingest_file(
             "filename": file.filename,
             **meta,
         },
+        elements=tuple(document_extracted.elements),
     )
 
     processed_docs = process_document([document], request_id)
@@ -159,6 +171,6 @@ async def ingest_file(
 
     return IngestResponse(
         document_id=document_id,
-        status="accepted",
+        status="processed",
         discovered_docs=1,
     )
