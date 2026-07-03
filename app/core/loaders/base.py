@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Tuple, Dict
+from app.core.documents.elements import ExtractedDocument
 
 
 class DocumentLoader(ABC):
     @abstractmethod
-    def load(self, file_bytes: bytes) -> Tuple[str, Dict]:
+    def load(self, file_bytes: bytes) -> ExtractedDocument:
         """
         Returns:
         - extracted_text
