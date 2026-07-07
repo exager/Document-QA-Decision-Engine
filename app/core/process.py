@@ -2,17 +2,34 @@ import logging
 import numpy as np
 from typing import List
 from app.core.documents.models import Document
-from app.core.documents.chunker import chunk_document
+from app.core.documents.chunkers import get_chunker
 from app.core.state import state
 from app.core.storage.vector_index import InMemoryVectorIndex
 
 
 logger = logging.getLogger(__name__)
 
+def _resolve_chunker():
+    """
+    Pick the chunking strategy from settings (default: character_v1).
+    
+    """
+    strategy_name = getattr(state.settings, "chunker_strategy", "character_v1")
+    return get_chunker(
+        strategy_name,
+        embed_fn=state.embedder.embed_texts,
+    )
+
+
 def process_document(documents: List[Document], request_id: str):
+    chunker = _resolve_chunker()
+    logger.info(
+        "chunker_selected",
+        extra = {"request_id": request_id, "chunker": chunker.name}
+    )
     chunks = []
     for document in documents:
-        parts = chunk_document(document)
+        parts = chunker.chunk(document)
         chunks.extend(parts)
 
         logger.info(
