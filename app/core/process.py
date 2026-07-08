@@ -14,7 +14,7 @@ def _resolve_chunker():
     Pick the chunking strategy from settings (default: character_v1).
     
     """
-    strategy_name = getattr(state.settings, "chunker_strategy", "character_v1")
+    strategy_name = state.retrieval_config.chunker_strategy
     return get_chunker(
         strategy_name,
         embed_fn=state.embedder.embed_texts,
@@ -56,7 +56,7 @@ def process_document(documents: List[Document], request_id: str):
 
         if state.vector_index is None:
             state.vector_index = InMemoryVectorIndex(dim=embeddings.shape[1])
-        state.vector_index.add(np.vstack(embeddings), id_list)
+        state.vector_index.add(embeddings, id_list)
 
     logger.info(
         "chunks_embedded_and_indexed",

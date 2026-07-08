@@ -75,9 +75,12 @@ class LlamaCppGenerator:
             # stdout, stderr = result.communicate()
         except subprocess.TimeoutExpired:
             return {
-                "error": "generation_timeout",
+                "response": "generation_error",
+                "answer": "",
                 "generation_latency_ms": int((time.time() - start) * 1000),
                 "prompt_chars": prompt_chars,
+                "detailed_log_out": "",
+                "detailed_log_err": "generation_timeout",
             }
 
         latency_ms = int((time.time() - start) * 1000)

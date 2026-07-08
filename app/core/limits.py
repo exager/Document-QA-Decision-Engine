@@ -1,9 +1,11 @@
 from fastapi import Request, HTTPException, UploadFile
+from app.core.config import get_app_settings
+from app.core.errors import PayloadTooLargeError
 
 
-MAX_CONTENT_LENGTH = 50_000         # character-limit set
-MAX_JSON_BODY_BYTES = 100_000       # (~100 KB)
-MAX_FILE_UPLOAD_BYTES = 25_000_000  # (~25 MB)
+_settings = get_app_settings()
+MAX_JSON_BODY_BYTES = _settings.max_json_body_bytes       # (~100 KB)
+MAX_FILE_UPLOAD_BYTES = _settings.max_file_upload_bytes   # (~25 MB)
 
 async def enforce_json_size_limit(request: Request, max_bytes: int) -> None:
     """
@@ -19,11 +21,23 @@ async def enforce_json_size_limit(request: Request, max_bytes: int) -> None:
             declared_size = None
 
         if declared_size is not None and declared_size > max_bytes:
-            raise HTTPException(status_code=413, detail="payload_too_large")
+            raise PayloadTooLargeError(
+                "payload too large",
+                details={
+                    "limit_bytes": max_bytes,
+                    "payload_size": declared_size,
+                },
+            )
         
     body = await request.body()
     if len(body) > max_bytes:
-        raise HTTPException(status_code=413, detail="payload_too_large")
+        raise PayloadTooLargeError(
+            "payload too large",
+            details={
+                "limit_bytes": max_bytes,
+                "payload_size": len(body),
+            },
+        )
 
 
 async def enforce_upload_size_limit(
@@ -42,7 +56,13 @@ async def enforce_upload_size_limit(
     if content_length is not None:
         try:
             if int(content_length) > max_bytes:
-                raise HTTPException(status_code=413, detail="payload_too_large")
+                raise PayloadTooLargeError(
+                    "payload too large",
+                    details={
+                        "limit_bytes": max_bytes,
+                        "payload_size": int(content_length),
+                    },
+                )
         except ValueError:
             pass
 
@@ -54,4 +74,10 @@ async def enforce_upload_size_limit(
         return
 
     if size > max_bytes:
-        raise HTTPException(status_code=413, detail="payload_too_large")
+        raise PayloadTooLargeError(
+            "payload too large",
+            details={
+                "limit_bytes": max_bytes,
+                "payload_size": size,
+            },
+        )

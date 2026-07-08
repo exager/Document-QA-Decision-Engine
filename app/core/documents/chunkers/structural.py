@@ -237,6 +237,17 @@ def pack_units(
             flush()
 
     flush(overlap=False)
+
+    # For trailing headings/titles
+    if len(buf) > 0 and only_anchors(buf):
+        logger.warning(
+            "trailing_headings_present",
+            extra={
+                "chunks_left": buf,
+                "counts": len(buf),
+                "raw_text": "\n".join(u.text for u in buf),
+            },
+        )
     return chunks_text, chunks_meta
 
 

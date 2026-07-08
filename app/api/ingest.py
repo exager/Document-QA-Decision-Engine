@@ -15,6 +15,11 @@ from app.core.limits import (
     MAX_FILE_UPLOAD_BYTES,
 )
 from app.core.search.dummy_internet import DummyInternetSearchProvider
+from app.core.errors import (
+    BadRequestError,
+    UnsupportedFileTypeError,
+    LowQualityDocumentError,
+)
 import uuid
 import hashlib
 from typing import List
@@ -39,10 +44,7 @@ async def ingest(req: IngestRequest, request: Request):
 
     if req.source == "internet":
         if not req.search_query:
-            raise HTTPException(
-                status_code=400,
-                detail="search_query is required when source=internet"
-            )
+            raise BadRequestError("search_query is required when source=internet")
 
         results = retry(
             lambda:search_provider.search(req.search_query),
@@ -74,10 +76,7 @@ async def ingest(req: IngestRequest, request: Request):
 
     elif req.source == "local":
         if not req.content:
-            raise HTTPException(
-                status_code=400,
-                detail="content is required when source=local"
-            )
+            raise BadRequestError("content is required when source=local")
 
         local_doc_id = hashlib.sha256(f'local:{req.content}'.encode("utf-8")).hexdigest()
         documents.append(
@@ -98,7 +97,7 @@ async def ingest(req: IngestRequest, request: Request):
             },
         )
     else:
-        raise HTTPException(status_code=400, detail="invalid source")
+        raise BadRequestError("invalid source provided. Expected: (internet, local)")
 
     #Process Documents
     processed_count = process_document(documents, request_id)
@@ -121,13 +120,16 @@ async def ingest_file(
     file_bytes = await file.read()
 
     if not file.filename:
-        raise HTTPException(status_code=400, detail="filename_required")
+        raise BadRequestError("filename is required")
     if file.filename.lower().endswith(".pdf"):
         document_extracted = pdf_loader.load(file_bytes)
     elif file.filename.endswith(".docx"):
         document_extracted = docx_loader.load(file_bytes)
     else:
-        raise HTTPException(status_code=400, detail="unsupported_file_type")
+        raise UnsupportedFileTypeError(
+            "unsupported file type",
+            details={"filename": file.filename},
+        )
 
     text = "\n\n".join(el.text for el in document_extracted.elements)
     meta = document_extracted.metadata
@@ -143,7 +145,10 @@ async def ingest_file(
                 "extracted_length": len(text),
             },
         )
-        raise HTTPException(status_code=422, detail="low_quality_document")
+        raise LowQualityDocumentError(
+            "extracted document is too short or low quality",
+            details={"extracted_length": len(text), "filename": file.filename},
+        )
 
     document_id = str(uuid.uuid4())
 

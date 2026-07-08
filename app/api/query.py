@@ -5,6 +5,7 @@ from app.core.retrieval.grounding import compute_overlap
 from app.core.guardrails.query_guard import sanitize_query
 from app.core.guardrails.query_preprocessing import preprocess_query
 from app.core.guardrails.context_guard import sanitize_context
+from app.core.errors import PromptInjectionError
 import logging
 
 router = APIRouter()
@@ -23,11 +24,10 @@ async def query(payload: dict, request: Request):
     query_check = sanitize_query(query_text)
 
     if query_check["is_malicious"]:
-        return {
-            "query": query_text,
-            "decision": "rejected",
-            "error": "Potential prompt injection detected",
-        }
+        raise PromptInjectionError(
+            "query flagged as potential prompt injection",
+            details={"reasons": query_check.get("reasons", [])},
+        )
 
     query_text = query_check["query"]
 
