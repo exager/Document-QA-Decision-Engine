@@ -4,9 +4,10 @@ class AppError(Exception):
     code = "app_error"
     status_code = 500
 
-    def __init__(self, message: str):
+    def __init__(self, message: str, *, details: dict[str, Any] | None = None):
         super().__init__(message)
         self.message = message
+        self.details = details or {}
 
     def to_dict(self, request_id: str) -> dict[str, Any]:
         """Serialize for the HTTP response envelope."""
@@ -15,7 +16,7 @@ class AppError(Exception):
             "message": self.message,
             "request_id": request_id,
         }
-        if self.details:
+        if self.details is not None and self.details:
             body["details"] = self.details
         return body
 
@@ -89,11 +90,6 @@ class LowQualityDocumentError(UnprocessableEntityError):
 class IngestionError(UnprocessableEntityError):
     """Generic ingest-time failure (parser error, malformed file, etc.)."""
     code = "ingestion_failed"
-
-
-class ExternalDependencyError(AppError):
-    code = "external_dependency_failed"
-    status_code = 503
 
 
 # ------- 5xx Errors -------------------------------------

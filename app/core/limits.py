@@ -1,4 +1,4 @@
-from fastapi import Request, HTTPException, UploadFile
+from fastapi import Request, UploadFile
 from app.core.config import get_app_settings
 from app.core.errors import PayloadTooLargeError
 

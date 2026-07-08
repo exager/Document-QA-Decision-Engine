@@ -15,7 +15,6 @@ make sure there's exactly one instance per class per process.
 """
 from __future__ import annotations
 from pathlib import Path
-from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
 

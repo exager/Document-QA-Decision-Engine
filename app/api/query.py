@@ -1,11 +1,11 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from app.core.state import state
 from app.core.retrieval.decisions import RetrievalDecision
 from app.core.retrieval.grounding import compute_overlap
 from app.core.guardrails.query_guard import sanitize_query
 from app.core.guardrails.query_preprocessing import preprocess_query
 from app.core.guardrails.context_guard import sanitize_context
-from app.core.errors import PromptInjectionError
+from app.core.errors import PromptInjectionError, BadRequestError
 import logging
 
 router = APIRouter()
@@ -17,7 +17,7 @@ async def query(payload: dict, request: Request):
     query_text = payload.get("query")
 
     if not query_text:
-        raise HTTPException(status_code=400, detail="query_required")
+        raise BadRequestError("query is required")
 
     query_text = preprocess_query(query_text)
 

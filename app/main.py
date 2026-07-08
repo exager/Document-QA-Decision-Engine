@@ -20,14 +20,11 @@ async def app_error_handler(request, exc: AppError):
     request_id = getattr(request.state, "request_id", "unknown")
     return JSONResponse(
         status_code=exc.status_code,
-        content={
-            "error": exc.code,
-            "message": exc.message,
-            "request_id": request_id,
-        },
+        content=exc.to_dict(request_id),
     )
 
 # For the cases FastAPI raises an HTTPException
+# Not used now, bbut may be needed later
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """
@@ -86,7 +83,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 # Ordering matters, fastapi executes middleware in reverse order
 # Firstly outermost is set, request_id..., then ocservability
 # And finally timeout.
-app.middleware("http")(TimeoutMiddleware(timeout_seconds=30))
+app.middleware("http")(TimeoutMiddleware(timeout_seconds=_settings.request_timeout_seconds))
 app.middleware("http")(observability_middleware)
 app.middleware("http")(request_id_middleware)
 
