@@ -1,8 +1,8 @@
-# Resol — A Decision-Driven Document QA System
+# Document QA Decision Engine
 
 > A RAG system that answers when it can prove the answer, and refuses when it can't.
 
-**Resol** is a Retrieval-Augmented Generation pipeline built around one guiding principle: **refuse over hallucinate**. Where most RAG demos retrieve top-k chunks and stuff them into an LLM prompt, Resol treats retrieval as a *signal*, not a verdict — it evaluates retrieval quality, decides whether the evidence justifies an answer, generates only when it does, and validates every answer against its sources before returning it.
+**Resol** is a Retrieval-Augmented Generation pipeline built around one guiding principle: **refuse over hallucinate**. Where most RAG demos retrieve top-k chunks and stuff them into an LLM prompt, Resol treats retrieval as a *signal*, not a verdict - it evaluates retrieval quality, decides whether the evidence justifies an answer, generates only when it does, and validates every answer against its sources before returning it.
 
 It's built as a FastAPI service with pluggable chunkers, pluggable LLM backends, structured error handling, and observability baked in. The whole thing runs on a laptop but is structured so that swapping a component (chunker strategy, embedding model, LLM backend, vector store) is a config change, not a rewrite.
 
@@ -18,7 +18,7 @@ Most tutorial RAG systems fail on the two things that matter in production: **kn
 | Chunking | Fixed-size character splitter | Three pluggable strategies (`character_v1`, `structural_v1`, `semantic_v1`) selected by config |
 | Grounding | None, or LLM self-check | Token-overlap grounding score + hallucination flag on every answer |
 | Prompt injection | Trust the LLM to ignore it | Query sanitization + context filtering + strict system prompt |
-| Error responses | `{"detail": "..."}` | Uniform envelope with stable error codes, `request_id`, and structured `details` |
+| Error responses | `{"detail": "..."}` | Uniform envelope with stable error codes, `request_id`, and structured `details` |s
 | Configuration | Hardcoded constants | Three-layer settings (app / LLM / RAG) driven by `.env` and `.env.rag` |
 | Refusal | Silent low-quality answer | Explicit `decision` field: `answerable`, `answerable_low_confidence`, `refuse_weak`, `refuse_empty` |
 | Observability | `print()` | Structured JSON logs with request-ID correlation on every line |
@@ -86,23 +86,23 @@ Every stage records structured logs tagged with the same `request_id`, so any qu
 
 ## What makes it interesting
 
-### 1. Retrieval evaluator — the refuse-before-hallucinate layer
+### 1. Retrieval evaluator - the refuse-before-hallucinate layer
 
 Retrieval doesn't return an answer. It returns evidence, and the **evaluator** decides whether that evidence is strong enough to generate on. Signals used:
 
-- **Top similarity score** — how good is the single best chunk?
-- **Number of strong chunks** — is the signal isolated or corroborated?
-- **Score distribution** — is there a sharp drop between chunk 1 and chunk 5?
-- **Average score** — do we have a consistent match or one lucky hit?
+- **Top similarity score** - how good is the single best chunk?
+- **Number of strong chunks** - is the signal isolated or corroborated?
+- **Score distribution** - is there a sharp drop between chunk 1 and chunk 5?
+- **Average score** - do we have a consistent match or one lucky hit?
 
 Signals combine into a confidence score, which maps to one of four decisions:
 
 | Decision | Meaning |
 |---|---|
-| `answerable` | Strong retrieval — call the LLM, expect a high-quality answer |
-| `answerable_low_confidence` | Some evidence — answer but flag reduced confidence |
-| `refuse_weak` | Retrieval too noisy — refuse rather than hallucinate |
-| `refuse_empty` | Nothing indexed or nothing matched — refuse |
+| `answerable` | Strong retrieval - call the LLM, expect a high-quality answer |
+| `answerable_low_confidence` | Some evidence - answer but flag reduced confidence |
+| `refuse_weak` | Retrieval too noisy - refuse rather than hallucinate |
+| `refuse_empty` | Nothing indexed or nothing matched - refuse |
 
 **Refusal is a first-class outcome**, not an error. Every refusal ships with the evidence trail that led to it.
 
@@ -110,9 +110,9 @@ Signals combine into a confidence score, which maps to one of four decisions:
 
 Chunking is a Strategy, selectable via `RAG_CHUNKER_STRATEGY` in `.env.rag`. Three strategies ship:
 
-- **`character_v1`** — the classic 700-char + 120-char-overlap approach. Kept as the baseline for A/B evaluation.
-- **`structural_v1`** — respects document structure (headings never orphaned, tables never split, sentence-aware packing into token budgets). Zero embedding cost.
-- **`semantic_v1`** — hybrid: structural constraints + z-score cosine-distance boundaries between adjacent sentences. Uses embeddings you were going to compute anyway.
+- **`character_v1`** - the classic 700-char + 120-char-overlap approach. Kept as the baseline for A/B evaluation.
+- **`structural_v1`** - respects document structure (headings never orphaned, tables never split, sentence-aware packing into token budgets). Zero embedding cost.
+- **`semantic_v1`** - hybrid: structural constraints + z-score cosine-distance boundaries between adjacent sentences. Uses embeddings you were going to compute anyway.
 
 Every chunk carries `metadata["chunker"]` for provenance, so retrieval outcomes can be attributed to the strategy that produced them.
 
@@ -120,25 +120,25 @@ Every chunk carries `metadata["chunker"]` for provenance, so retrieval outcomes 
 
 ### 3. Structure-aware document extractors
 
-PDF and DOCX loaders don't return a text blob. They return an **`ExtractedDocument`** — an ordered list of typed `DocumentElement`s (titles, headings, paragraphs, list items, tables, code, captions) with page numbers, heading paths, and style metadata.
+PDF and DOCX loaders don't return a text blob. They return an **`ExtractedDocument`** - an ordered list of typed `DocumentElement`s (titles, headings, paragraphs, list items, tables, code, captions) with page numbers, heading paths, and style metadata.
 
 - **PDF extraction** uses `pymupdf` with layout awareness: font-size-histogram heading detection, `page.find_tables()` for real table extraction (rendered as markdown, not scrambled cell soup), and bounding-box deduplication so table text isn't double-counted.
 - **DOCX extraction** walks the docx XML body in true reading order (paragraphs *and* tables interleaved), maps Word paragraph styles to element types, and detects real list items via `<w:numPr>` rather than the fragile "List Paragraph" style name.
-- Both maintain a **depth-preserving heading stack**: an `H3` appearing under an `H1` (with no `H2`) produces `["H1", "", "H3"]` — length equals level, so downstream code always knows structural depth.
+- Both maintain a **depth-preserving heading stack**: an `H3` appearing under an `H1` (with no `H2`) produces `["H1", "", "H3"]` - length equals level, so downstream code always knows structural depth.
 
 This structure is what makes structural and semantic chunking possible.
 
 ### 4. Guardrails you can defend
 
-- **Query sanitization** — pattern-matches known prompt-injection templates; malicious queries are rejected with a `400 prompt_injection_detected`, not a silent 200.
-- **Context filtering** — retrieved chunks are scrubbed for embedded "ignore previous instructions" style content before being handed to the LLM.
-- **Strict system prompt** — the LLM is instructed to treat context as *data*, not instructions; to refuse if the answer isn't in the context; to never draw on outside knowledge.
+- **Query sanitization** - pattern-matches known prompt-injection templates; malicious queries are rejected with a `400 prompt_injection_detected`, not a silent 200.
+- **Context filtering** - retrieved chunks are scrubbed for embedded "ignore previous instructions" style content before being handed to the LLM.
+- **Strict system prompt** - the LLM is instructed to treat context as *data*, not instructions; to refuse if the answer isn't in the context; to never draw on outside knowledge.
 
-None of these are silver bullets — they're layered defenses, and each one is a known technique documented in the code.
+None of these are silver bullets - they're layered defenses, and each one is a known technique documented in the code.
 
 ### 5. Grounding validation
 
-After generation, the answer is scored against the retrieved context via token overlap. If the overlap falls below a threshold, the response is flagged with `hallucination_risk: true` — the system tells you when it doesn't trust its own answer. This is a heuristic today, deliberately kept simple and interpretable; a cross-encoder NLI upgrade is on the roadmap.
+After generation, the answer is scored against the retrieved context via token overlap. If the overlap falls below a threshold, the response is flagged with `hallucination_risk: true` - the system tells you when it doesn't trust its own answer. This is a heuristic today, deliberately kept simple and interpretable; a cross-encoder NLI upgrade is on the roadmap.
 
 ### 6. Uniform error envelope
 
@@ -372,12 +372,12 @@ Full request/response schemas are in `/docs` (Swagger UI) when the server is run
 
 ## Design principles
 
-- **Don't trust the LLM blindly** — validate every answer against its sources.
-- **Don't trust retrieval blindly** — score its quality before acting on it.
-- **Prefer refusal over hallucination** — refusing correctly is a feature.
-- **Every decision has evidence** — the trace is part of the API, not just internal logging.
-- **Every stage is swappable** — chunker, embedder, LLM, vector store are all interfaces.
-- **Fail loud at startup, gracefully at runtime** — config validation catches misconfiguration at boot; runtime failures return typed errors, not stack traces.
+- **Don't trust the LLM blindly** - validate every answer against its sources.
+- **Don't trust retrieval blindly** - score its quality before acting on it.
+- **Prefer refusal over hallucination** - refusing correctly is a feature.
+- **Every decision has evidence** - the trace is part of the API, not just internal logging.
+- **Every stage is swappable** - chunker, embedder, LLM, vector store are all interfaces.
+- **Fail loud at startup, gracefully at runtime** - config validation catches misconfiguration at boot; runtime failures return typed errors, not stack traces.
 
 ---
 
@@ -491,10 +491,10 @@ This is a personal project, but issues and PRs are welcome. The rough contributi
 
 1. Open an issue describing the change.
 2. Fork, branch, and open a PR against `main`.
-3. Every PR runs (or will run — see Roadmap) the eval harness. A PR that regresses retrieval recall by >2 points, or increases false-answer rate, won't merge.
+3. Every PR runs (or will run - see Roadmap) the eval harness. A PR that regresses retrieval recall by >2 points, or increases false-answer rate, won't merge.
 
 ---
 
 ## License
 
-MIT — see `LICENSE`.
+MIT - see `LICENSE`.
