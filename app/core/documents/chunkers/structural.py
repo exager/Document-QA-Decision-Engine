@@ -282,7 +282,7 @@ def build_chunks_from_packed(
     return chunks
 
 
-# --- the strategy ----------------------------------------------------------
+# --- Structural Chunking init -------------------------------------
 
 @register("structural_v1")
 class StructuralChunker(Chunker):
